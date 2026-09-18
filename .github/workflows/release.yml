@@ -54,11 +54,11 @@ jobs:
       - name: Build Cartridge.app
         run: ./build-app.sh
       - name: Launch it and wait for its window
-        run: ./Tools/smoke-test.sh build/Cartridge.app
+        run: ./.github/scripts/smoke-test.sh build/Cartridge.app
       - name: Pack the installer
-        run: ./Tools/make-dmg.sh
+        run: ./.github/scripts/make-dmg.sh
       - name: Write the notes
-        run: ./Tools/release-notes.sh "${VERSION}" > "${RUNNER_TEMP}/notes.md"
+        run: ./.github/scripts/release-notes.sh "${VERSION}" > "${RUNNER_TEMP}/notes.md"
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}

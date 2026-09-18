@@ -1,9 +1,0 @@
-# The app itself has no package dependencies; the workflow's actions are the only third-party code in the repo.
-version: 2
-updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
-    commit-message:
-      prefix: CI

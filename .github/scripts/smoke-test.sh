@@ -1,7 +1,7 @@
 #!/bin/bash
 # Launches a built Cartridge.app and checks it actually comes up: signature intact, process stays alive,
 # and a window on screen. Runs against a throwaway CARTRIDGE_HOME so it never touches a real library.
-# Usage: ./Tools/smoke-test.sh [path/to/Cartridge.app] [seconds to wait for the window]
+# Usage: ./.github/scripts/smoke-test.sh [path/to/Cartridge.app] [seconds to wait for the window]
 set -euo pipefail
 
 APP="${1:-build/Cartridge.app}"

@@ -1,6 +1,6 @@
 # dmgbuild settings for Cartridge's installer: the app, a shortcut to Applications and the pixel-art background.
-# Used by Tools/make-dmg.sh, which passes the app, background and version with -D. The positions must match
-# Tools/make-dmg-background.swift: a 660 x 400 point window, icons centred at (165, 190) and (495, 190).
+# Used by .github/scripts/make-dmg.sh, which passes the app, background and version with -D. The positions must match
+# .github/scripts/make-dmg-background.swift: a 660 x 400 point window, icons centred at (165, 190) and (495, 190).
 import os.path
 
 app = defines["app"]

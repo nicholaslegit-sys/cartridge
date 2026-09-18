@@ -33,7 +33,7 @@ jobs:
         run: ./build-app.sh
       # Tests cover the pieces; this covers the app itself starting, staying up and drawing its window.
       - name: Launch it and wait for its window
-        run: ./Tools/smoke-test.sh build/Cartridge.app
+        run: ./.github/scripts/smoke-test.sh build/Cartridge.app
       - name: Zip it
         run: ditto -c -k --keepParent build/Cartridge.app Cartridge.zip
       - name: Keep the build for review

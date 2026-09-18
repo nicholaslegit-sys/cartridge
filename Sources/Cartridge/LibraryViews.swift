@@ -73,11 +73,13 @@ struct GameGridView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 210), spacing: 18, alignment: .top)], spacing: 20) {
                 ForEach(filtered) { game in
                     GameCard(game: game, selected: selection == game.id)
-                        .onTapGesture(count: 2) {
+                        // One gesture reading AppKit's click count: a separate count-2 gesture lost the second click
+                        // once the first one opened the inspector. Only a game already selected plays, so a grid that
+                        // reflowed under the pointer can't start its neighbour.
+                        .onTapGesture {
+                            if NSApp.currentEvent?.clickCount == 2, selection == game.id { library.requestPlay(game) }
                             selection = game.id
-                            library.requestPlay(game)
                         }
-                        .onTapGesture { selection = game.id }
                         .contextMenu { GameMenu(game: game) }
                 }
             }

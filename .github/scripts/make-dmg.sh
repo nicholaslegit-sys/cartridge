@@ -1,12 +1,12 @@
 #!/bin/bash
 # Packs build/Cartridge.app into build/Cartridge-<version>.dmg: the app, a shortcut to Applications and a pixel-art
-# background, laid out the way a Mac installer is. Usage: ./Tools/make-dmg.sh (after ./build-app.sh)
+# background, laid out the way a Mac installer is. Usage: ./.github/scripts/make-dmg.sh (after ./build-app.sh)
 #
 # dmgbuild writes the window layout directly rather than scripting Finder, so this works the same on a GitHub
 # runner as on a Mac with a screen.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION="$(sed -n 's/^VERSION="\(.*\)"$/\1/p' "${ROOT}/build-app.sh")"
 APP="${ROOT}/build/Cartridge.app"
 OUT="${ROOT}/build/Cartridge-${VERSION}.dmg"
@@ -29,8 +29,8 @@ if [[ -z "${DMGBUILD}" ]]; then
 fi
 
 echo "==> Drawing the background"
-swift "${ROOT}/Tools/make-dmg-background.swift" "${WORK}/background.png" 1 "${VERSION}"
-swift "${ROOT}/Tools/make-dmg-background.swift" "${WORK}/background@2x.png" 2 "${VERSION}"
+swift "${ROOT}/.github/scripts/make-dmg-background.swift" "${WORK}/background.png" 1 "${VERSION}"
+swift "${ROOT}/.github/scripts/make-dmg-background.swift" "${WORK}/background@2x.png" 2 "${VERSION}"
 tiffutil -cathidpicheck "${WORK}/background.png" "${WORK}/background@2x.png" -out "${WORK}/background.tiff" >/dev/null
 
 # A clean copy: files under ~/Desktop pick up extended attributes that have no business in an installer.
@@ -38,7 +38,7 @@ ditto --noextattr --norsrc "${APP}" "${WORK}/Cartridge.app"
 
 echo "==> Packing ${OUT##*/}"
 rm -f "${OUT}"
-"${DMGBUILD}" -s "${ROOT}/Tools/dmg-settings.py" \
+"${DMGBUILD}" -s "${ROOT}/.github/scripts/dmg-settings.py" \
     -D app="${WORK}/Cartridge.app" -D background="${WORK}/background.tiff" -D version="${VERSION}" \
     "Cartridge ${VERSION}" "${OUT}"
 

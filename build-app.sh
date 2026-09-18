@@ -24,7 +24,7 @@ cp "${BIN}" "${APP}/Contents/MacOS/Cartridge"
 
 ICONSET="$(mktemp -d)/Cartridge.iconset"
 mkdir -p "${ICONSET}"
-cp Tools/AppIcon.png "${ICONSET}/icon_512x512@2x.png"  # rendered from Tools/icon-concepts/v2.html?v=s2
+cp .github/assets/icon.png "${ICONSET}/icon_512x512@2x.png"
 for s in 16 32 128 256 512; do
     sips -z $s $s "${ICONSET}/icon_512x512@2x.png" --out "${ICONSET}/icon_${s}x${s}.png" >/dev/null
     sips -z $((s * 2)) $((s * 2)) "${ICONSET}/icon_512x512@2x.png" --out "${ICONSET}/icon_${s}x${s}@2x.png" >/dev/null

@@ -79,17 +79,13 @@ A native macOS launcher that installs the right emulator, finds the box art and 
 git clone https://github.com/nicholaslegit-sys/cartridge.git
 cd cartridge
 ./build-app.sh        # writes build/Cartridge.app
-./Tools/make-dmg.sh   # packs it into build/Cartridge-<version>.dmg, the drag-to-Applications installer
+./.github/scripts/make-dmg.sh   # packs it into build/Cartridge-<version>.dmg, the drag-to-Applications installer
 ```
 
-Run the tests with `swift test`. Network tests are opt-in (`CARTRIDGE_LIVE=1`, `CARTRIDGE_LIVE_LAUNCHBOX=1`, `CARTRIDGE_LIVE_MANUALS=1`, `CARTRIDGE_LIVE_TRAILERS=1`). `./Tools/smoke-test.sh` launches the app you just built against a throwaway library and checks it comes up; CI runs the same script.
+Run the tests with `swift test`. Network tests are opt-in (`CARTRIDGE_LIVE=1`, `CARTRIDGE_LIVE_LAUNCHBOX=1`, `CARTRIDGE_LIVE_MANUALS=1`, `CARTRIDGE_LIVE_TRAILERS=1`). `./.github/scripts/smoke-test.sh` launches the app you just built against a throwaway library and checks it comes up; CI runs the same script.
 
 > [!NOTE]
 > Building inside an iCloud-synced folder such as Desktop adds extended attributes that `codesign` rejects. `build-app.sh` handles this for the app. For tests, pass `--scratch-path` pointing outside the synced folder.
-
-## Releasing
-
-Bump `VERSION` and `BUILD` in `build-app.sh`, add a section for the version to `CHANGELOG.md`, and push to main. The Release workflow tests and builds that version, checks it launches, packs the installer and publishes it with the version's changelog section as its notes. A push that doesn't change the version releases nothing, and a version without a changelog section gets the commits since the last release instead.
 
 ## Your games, your dumps
 

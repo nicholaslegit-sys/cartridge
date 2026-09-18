@@ -1,10 +1,10 @@
 #!/bin/bash
 # Prints a release's notes: its section of CHANGELOG.md - or, when the changelog has none, the commits since the
-# last release - and then how to install it. Usage: Tools/release-notes.sh 1.2.0
+# last release - and then how to install it. Usage: .github/scripts/release-notes.sh 1.2.0
 set -euo pipefail
 
 VERSION="${1:?usage: release-notes.sh <version>}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 notes="$(awk -v version="${VERSION}" '
     /^## / { if (found) exit; found = index($0, "[" version "]") > 0; next }

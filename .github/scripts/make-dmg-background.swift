@@ -1,8 +1,8 @@
 // Draws the installer window's background: the app icon's night sky, with a pixel-art arrow from Cartridge to the
-// Applications folder. Usage: swift Tools/make-dmg-background.swift <out.png> <scale> <version>
+// Applications folder. Usage: swift .github/scripts/make-dmg-background.swift <out.png> <scale> <version>
 //
 // Everything is drawn here, including the pixel lettering, so there is no font licence or image asset to track.
-// The layout has to agree with Tools/dmg-settings.py: a 660 x 400 point window, 128-point icons centred at
+// The layout has to agree with .github/scripts/dmg-settings.py: a 660 x 400 point window, 128-point icons centred at
 // (165, 190) and (495, 190).
 import AppKit
 
