@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the running one pointless, and macOS minutes are billed at ten times the rate.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift build
+      - run: swift test
+
+  app:
+    name: App launches
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build Cartridge.app
+        run: ./build-app.sh
+      # Tests cover the pieces; this covers the app itself starting, staying up and drawing its window.
+      - name: Launch it and wait for its window
+        run: ./Tools/smoke-test.sh build/Cartridge.app
+      - name: Zip it
+        run: ditto -c -k --keepParent build/Cartridge.app Cartridge.zip
+      - name: Keep the build for review
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Cartridge.app
+          path: Cartridge.zip
+          retention-days: 7

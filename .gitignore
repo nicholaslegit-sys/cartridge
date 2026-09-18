@@ -1,0 +1,7 @@
+.build/
+build/
+.DS_Store
+.swiftpm/
+demo1.mp4
+*.mp4
+__pycache__/

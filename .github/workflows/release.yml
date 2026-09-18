@@ -1,0 +1,69 @@
+name: Release
+
+# Bumping VERSION in build-app.sh and pushing to main is the whole release process: this builds that version,
+# checks it, packs the installer and publishes it with its CHANGELOG.md section as the notes. A version that already
+# has a release is left alone, so pushes that don't bump the version do nothing.
+on:
+  push:
+    branches: [main]
+    paths: [build-app.sh]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One release at a time, and never cut short by a newer push.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Is this version new?
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      new: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: version
+        run: |
+          version="$(sed -n 's/^VERSION="\(.*\)"$/\1/p' build-app.sh)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" >/dev/null; then
+            echo "v${version} is already released - nothing to do."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Release ${{ needs.check.outputs.version }}
+    needs: check
+    if: needs.check.outputs.new == 'true'
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # the notes fall back to the commits since the last release
+      - name: Test
+        run: swift test
+      - name: Build Cartridge.app
+        run: ./build-app.sh
+      - name: Launch it and wait for its window
+        run: ./Tools/smoke-test.sh build/Cartridge.app
+      - name: Pack the installer
+        run: ./Tools/make-dmg.sh
+      - name: Write the notes
+        run: ./Tools/release-notes.sh "${VERSION}" > "${RUNNER_TEMP}/notes.md"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${VERSION}" "build/Cartridge-${VERSION}.dmg" \
+            --title "Cartridge ${VERSION}" \
+            --notes-file "${RUNNER_TEMP}/notes.md" \
+            --target "${GITHUB_SHA}"
