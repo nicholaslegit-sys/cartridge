@@ -2,8 +2,8 @@
 # Builds Cartridge.app into ./build. Usage: ./build-app.sh
 set -euo pipefail
 
-VERSION="1.3.3"
-BUILD="10"
+VERSION="1.3.4"
+BUILD="11"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Assemble and sign outside ~/Desktop: iCloud-synced folders keep adding extended attributes that codesign rejects.
@@ -13,14 +13,24 @@ APP="${STAGE}/Cartridge.app"
 OUT="${ROOT}/build/Cartridge.app"
 cd "${ROOT}"
 
-echo "==> Building (release)"
-swift build -c release --product Cartridge
-BIN="$(swift build -c release --product Cartridge --show-bin-path)/Cartridge"
+# The release builds each architecture on a runner of that architecture and hands the joined binary in here:
+# a single swift build can't produce both on the machines GitHub gives us. A build on your own Mac makes its own.
+if [[ -n "${CARTRIDGE_BIN:-}" ]]; then
+    echo "==> Using ${CARTRIDGE_BIN}"
+    BIN="${CARTRIDGE_BIN}"
+else
+    echo "==> Building (release)"
+    swift build -c release --product Cartridge
+    BIN="$(swift build -c release --product Cartridge --show-bin-path)/Cartridge"
+fi
 
 echo "==> Assembling"
 rm -rf "${APP}"
 mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
 cp "${BIN}" "${APP}/Contents/MacOS/Cartridge"
+# A binary handed in through CARTRIDGE_BIN may have lost its executable bit on the way (CI artifacts don't keep
+# permissions), and an app whose binary isn't executable doesn't open at all.
+chmod +x "${APP}/Contents/MacOS/Cartridge"
 
 ICONSET="$(mktemp -d)/Cartridge.iconset"
 mkdir -p "${ICONSET}"

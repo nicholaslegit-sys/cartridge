@@ -2,6 +2,12 @@
 
 Each release's section here becomes its notes on the GitHub release page.
 
+## [1.3.4] - 2026-09-20
+
+### Fixed
+
+- **Cartridge runs on Intel Macs.** Every build until now was Apple Silicon only, so an Intel Mac refused to open the app at all, although Cartridge asks only for macOS 14. The release is now built for both kinds of Mac.
+
 ## [1.3.3] - 2026-09-20
 
 ### Fixed

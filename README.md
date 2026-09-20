@@ -8,11 +8,11 @@
 A native macOS launcher that installs the right emulator, finds the box art and lets you pull a game off a 3D shelf, open the case and read the manual.
 
 [![CI](https://github.com/nicholaslegit-sys/cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/nicholaslegit-sys/cartridge/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.3.3-7C3AED?style=flat-square)](https://github.com/nicholaslegit-sys/cartridge/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.3.4-7C3AED?style=flat-square)](https://github.com/nicholaslegit-sys/cartridge/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SceneKit-0A84FF?style=flat-square&logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-333333?style=flat-square&logo=apple&logoColor=white)](#requirements)
+[![Universal](https://img.shields.io/badge/Universal-Apple%20Silicon%20%2B%20Intel-333333?style=flat-square&logo=apple&logoColor=white)](#requirements)
 
 [Download](https://github.com/nicholaslegit-sys/cartridge/releases/latest) · [Features](#features) · [Build from source](#build-from-source) · [Credits](#credits)
 
@@ -63,7 +63,7 @@ A native macOS launcher that installs the right emulator, finds the box art and 
 ## Requirements
 
 - macOS 14 Sonoma or later
-- Apple silicon Mac (the release build is arm64)
+- Apple silicon or Intel Mac (the release build is universal)
 
 ## Install
 

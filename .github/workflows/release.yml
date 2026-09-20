@@ -37,9 +37,37 @@ jobs:
             echo "new=true" >> "$GITHUB_OUTPUT"
           fi
 
+  slice:
+    name: ${{ matrix.arch }} slice
+    needs: check
+    if: needs.check.outputs.new == 'true'
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        run: swift build -c release --product Cartridge
+      - name: Check it is really ${{ matrix.arch }}
+        run: |
+          binary="$(swift build -c release --product Cartridge --show-bin-path)/Cartridge"
+          lipo -info "${binary}" | grep -q "${{ matrix.arch }}"
+          cp "${binary}" "${RUNNER_TEMP}/Cartridge-${{ matrix.arch }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cartridge-${{ matrix.arch }}
+          path: ${{ runner.temp }}/Cartridge-${{ matrix.arch }}
+          retention-days: 1
+
   release:
     name: Release ${{ needs.check.outputs.version }}
-    needs: check
+    needs: [check, slice]
     if: needs.check.outputs.new == 'true'
     runs-on: macos-15
     timeout-minutes: 40
@@ -51,8 +79,24 @@ jobs:
           fetch-depth: 0   # the notes fall back to the commits since the last release
       - name: Test
         run: swift test
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.1
+        with:
+          pattern: cartridge-*
+          path: ${{ runner.temp }}/slices
+          merge-multiple: true
+      - name: Join the two architectures
+        run: |
+          lipo -create -output "${RUNNER_TEMP}/Cartridge-universal" \
+            "${RUNNER_TEMP}/slices/Cartridge-arm64" "${RUNNER_TEMP}/slices/Cartridge-x86_64"
+          lipo -info "${RUNNER_TEMP}/Cartridge-universal"
       - name: Build Cartridge.app
+        env:
+          CARTRIDGE_BIN: ${{ runner.temp }}/Cartridge-universal
         run: ./build-app.sh
+      - name: It must run on both kinds of Mac
+        run: |
+          lipo -info build/Cartridge.app/Contents/MacOS/Cartridge | tee /dev/stderr | grep -q "x86_64 arm64\|arm64 x86_64"
+          codesign --verify --strict build/Cartridge.app
       - name: Launch it and wait for its window
         run: ./.github/scripts/smoke-test.sh build/Cartridge.app
       - name: Pack the installer
