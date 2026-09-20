@@ -268,6 +268,7 @@ final class Library {
                 }
             }
             unpacking.removeAll { name in archives.contains { $0.lastPathComponent == name } }
+            items = Self.withoutCompanions(items)
             pending.append(contentsOf: items.filter { item in !pending.contains { $0.url == item.url } })
         }
     }
@@ -293,6 +294,19 @@ final class Library {
             throw CartridgeError("There's no game Cartridge recognises inside \(archive.lastPathComponent).")
         }
         return games
+    }
+
+    /// Drops the track files another item on the list already brings with it, so picking a .cue and its .bin in the
+    /// file picker adds one game rather than two - the folder scan has always done this.
+    nonisolated static func withoutCompanions(_ items: [PendingImport]) -> [PendingImport] {
+        var consumed = Set<String>()
+        for item in items {
+            let folder = item.url.deletingLastPathComponent()
+            for name in ((try? companions(of: item.url)) ?? []).dropFirst() {
+                consumed.insert(folder.appendingPathComponent(name).standardizedFileURL.path)
+            }
+        }
+        return items.filter { !consumed.contains($0.url.standardizedFileURL.path) }
     }
 
     /// Takes items off the review list, deleting unpacked folders nothing left on the list still needs.
@@ -755,7 +769,7 @@ final class Library {
     /// Fills in missing artwork and details from whatever is set up: LaunchBox, then IGDB, then libretro's thumbnails.
     func fetchArt(_ id: UUID) async {
         guard let game = games.first(where: { $0.id == id }), !game.artChecked else { return }
-        let stem = game.system.isFolderBased ? game.url.lastPathComponent : game.url.deletingPathExtension().lastPathComponent
+        let stem = Detect.withoutDuplicateSuffix(game.system.isFolderBased ? game.url.lastPathComponent : game.url.deletingPathExtension().lastPathComponent)
         if let db = artwork.launchBoxDB, let match = db.match(game.title, system: game.system) ?? db.match(stem, system: game.system) {
             try? await applyLaunchBox(match, to: id, overwrite: false)
         } else if let igdb = artwork.igdb, let results = try? await igdb.search(game.title, system: game.system),
@@ -767,6 +781,13 @@ final class Library {
             _ = try? Paths.ensure(Paths.art)
             try? data.write(to: game.artURL)
             artChanged(id)
+        }
+        // That last one only hits when the file is named exactly the way the thumbnail is. A game renamed by hand,
+        // or named after its disc id, needs the listing searched - the same source Find Artwork offers, run for you.
+        if !FileManager.default.fileExists(atPath: game.artURL.path),
+           let names = try? await searchLibretro(game.title, system: game.system),
+           let closest = Self.closestThumbnail(names) {
+            try? await applyLibretro(closest, to: id)
         }
         update(id) { $0.artChecked = true }
     }
@@ -839,6 +860,19 @@ final class Library {
     }
     @ObservationIgnored private var libretroNames: [System: [String]] = [:]
 
+    /// The likeliest of libretro's names for a game: an American release before other regions, and the plainest
+    /// name before revisions, discs and demos. Every word of the title had to appear for a name to get here, so a
+    /// file named after its disc id matches nothing and keeps no cover rather than the wrong one.
+    nonisolated static func closestThumbnail(_ names: [String]) -> String? {
+        func rank(_ name: String) -> (Int, Int) {
+            let region = ["(USA", "(World", "(Europe", "(Japan"].firstIndex { name.contains($0) } ?? 4
+            return (region, name.count)
+        }
+        return names
+            .filter { !$0.contains("(Demo") && !$0.contains("(Beta") && !$0.contains("(Proto") }
+            .min { rank($0) < rank($1) }
+    }
+
     func applyLibretro(_ name: String, to id: UUID) async throws {
         guard let system = games.first(where: { $0.id == id })?.system else { return }
         let art = [ArtKind.front: "Named_Boxarts", .title: "Named_Titles"].compactMapValues { Self.thumbnailURL(system, kind: $0, name: name) }
@@ -879,7 +913,7 @@ final class Library {
     /// The title screen, used as the printed label on a disc when there's no disc scan.
     func fetchLabelArt(_ game: Game) async {
         guard !FileManager.default.fileExists(atPath: game.labelArtURL.path) else { return }
-        let stem = game.url.deletingPathExtension().lastPathComponent
+        let stem = Detect.withoutDuplicateSuffix(game.url.deletingPathExtension().lastPathComponent)
         guard let url = Self.thumbnailURL(game.system, kind: "Named_Titles", name: stem),
               let data = try? await Net.data(url), NSImage(data: data) != nil else { return }
         _ = try? Paths.ensure(Paths.art)

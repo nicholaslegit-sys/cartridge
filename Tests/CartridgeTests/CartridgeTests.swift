@@ -1580,3 +1580,40 @@ func makeTestPDF(_ url: URL, pages: [(size: CGSize, colors: [NSColor])]) {
         #expect(!FileManager.default.fileExists(atPath: missing.path))
     }
 }
+
+@Suite struct ImportListTests {
+    /// Picking a .cue and its .bin together in the file picker must add one game, not two.
+    @Test func aCueAndItsTracksAreOneGame() throws {
+        let scratch = try Scratch()
+        let bin = try scratch.file("SimCity 2000 (USA).bin", size: 0x10)
+        let cue = try scratch.text("SimCity 2000 (USA).cue", "FILE \"SimCity 2000 (USA).bin\" BINARY\n  TRACK 01 MODE2/2352\n")
+        let items = [bin, cue].map { PendingImport(url: $0, system: .ps1) }
+        let kept = Library.withoutCompanions(items)
+        #expect(kept.map(\.url) == [cue])
+        // A track picked on its own is still a game.
+        #expect(Library.withoutCompanions([PendingImport(url: bin, system: .ps1)]).count == 1)
+    }
+
+    /// A file Finder copied ("… (USA) 2.iso") must be looked up under its real name, or no thumbnail matches.
+    @Test func lookupsIgnoreFindersDuplicateSuffix() {
+        #expect(Detect.withoutDuplicateSuffix("LEGO Star Wars (USA) (v2.00) 2") == "LEGO Star Wars (USA) (v2.00)")
+        #expect(Detect.withoutDuplicateSuffix("Game (USA) copy 3") == "Game (USA)")
+        // A real sequel keeps its number.
+        #expect(Detect.withoutDuplicateSuffix("Tekken 2") == "Tekken 2")
+        #expect(Library.thumbnailURL(.ps2, name: Detect.withoutDuplicateSuffix("LEGO Star Wars - The Video Game (USA) (v2.00) 2"))?.absoluteString
+                .hasSuffix("LEGO%20Star%20Wars%20-%20The%20Video%20Game%20(USA)%20(v2.00).png") == true)
+    }
+}
+
+@Suite struct ThumbnailPickTests {
+    /// A game renamed by hand still finds its cover: the listing is searched and the plainest US name wins.
+    @Test func picksThePlainestAmericanName() {
+        let names = ["LEGO Star Wars - The Video Game (Europe)", "LEGO Star Wars - The Video Game (USA) (v2.00)",
+                     "LEGO Star Wars - The Video Game (USA) (Demo)", "LEGO Star Wars - The Video Game (Japan)"]
+        #expect(Library.closestThumbnail(names) == "LEGO Star Wars - The Video Game (USA) (v2.00)")
+        #expect(Library.closestThumbnail(["Tekken 3 (Europe)", "Tekken 3 (Japan)"]) == "Tekken 3 (Europe)")
+        #expect(Library.closestThumbnail(["Game (USA) (Beta)"]) == nil)
+        #expect(Library.closestThumbnail([]) == nil)
+    }
+
+}

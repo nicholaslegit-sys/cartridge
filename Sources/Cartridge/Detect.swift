@@ -154,10 +154,15 @@ enum Detect {
 
     // MARK: Titles and icons
 
+    /// "Game (USA) 2" / "Game (USA) copy": a number after the tags is Finder's duplicate suffix, not a sequel.
+    /// No database or thumbnail set is named after it, so it comes off before any lookup.
+    static func withoutDuplicateSuffix(_ stem: String) -> String {
+        stem.replacingOccurrences(of: #"(?<=[\)\]])\s+(\d+|copy( \d+)?)$"#, with: "", options: .regularExpression)
+    }
+
     /// "Super Mario Bros. (World) [!]" → "Super Mario Bros."
     static func title(fromFilename stem: String) -> String {
-        // "Game (USA) 2" / "Game (USA) copy": a number after the tags is Finder's duplicate suffix, not a sequel.
-        let stem = stem.replacingOccurrences(of: #"(?<=[\)\]])\s+(\d+|copy( \d+)?)$"#, with: "", options: .regularExpression)
+        let stem = withoutDuplicateSuffix(stem)
         var t = stem.replacingOccurrences(of: #"\s*[\(\[][^\)\]]*[\)\]]"#, with: "", options: .regularExpression)
         if !t.contains(" ") { t = t.replacingOccurrences(of: "_", with: " ") }
         t = t.trimmingCharacters(in: .whitespaces)

@@ -2,6 +2,14 @@
 
 Each release's section here becomes its notes on the GitHub release page.
 
+## [1.3.3] - 2026-09-20
+
+### Fixed
+
+- Covers were only found for games whose file still had its full Redump name. A game renamed by hand, or copied by Finder into "… (USA) 2.iso", now has libretro's box art library searched for it too.
+- Picking a disc's .cue and its .bin together in Add Games… added the same game twice. The picker and drag-and-drop now leave out the track files a disc already brings with it, which is what the games folder scan has always done.
+- Double-clicking a game didn't always start it: the second click was lost once the first opened the details panel.
+
 ## [1.3.2] - 2026-09-18
 
 ### Fixed
