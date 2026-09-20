@@ -8,7 +8,7 @@
 A native macOS launcher that installs the right emulator, finds the box art and lets you pull a game off a 3D shelf, open the case and read the manual.
 
 [![CI](https://github.com/nicholaslegit-sys/cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/nicholaslegit-sys/cartridge/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.3.4-7C3AED?style=flat-square)](https://github.com/nicholaslegit-sys/cartridge/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.3.5-7C3AED?style=flat-square)](https://github.com/nicholaslegit-sys/cartridge/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SceneKit-0A84FF?style=flat-square&logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)

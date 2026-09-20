@@ -784,12 +784,19 @@ final class Library {
         }
         // That last one only hits when the file is named exactly the way the thumbnail is. A game renamed by hand,
         // or named after its disc id, needs the listing searched - the same source Find Artwork offers, run for you.
-        if !FileManager.default.fileExists(atPath: game.artURL.path),
-           let names = try? await searchLibretro(game.title, system: game.system),
-           let closest = Self.closestThumbnail(names) {
-            try? await applyLibretro(closest, to: id)
+        // A console libretro keeps no artwork for is an answer, not a failure - don't keep asking about those.
+        var reachedTheSources = true
+        if !FileManager.default.fileExists(atPath: game.artURL.path), game.system.thumbnailSet != nil {
+            do {
+                if let closest = Self.closestThumbnail(try await searchLibretro(game.title, system: game.system)) {
+                    try? await applyLibretro(closest, to: id)
+                }
+            } catch {
+                reachedTheSources = false
+            }
         }
-        update(id) { $0.artChecked = true }
+        // Games added with no connection are left to try again next time, rather than marked as having no cover.
+        if reachedTheSources { update(id) { $0.artChecked = true } }
     }
 
     /// Runs the automatic lookup again for every game, filling only what's missing.
@@ -842,23 +849,37 @@ final class Library {
         }
     }
 
-    /// Box art names on thumbnails.libretro.com matching every word of `query`. The console's whole listing is one
-    /// page, fetched once per run.
+    /// Box art names on thumbnails.libretro.com matching every word of `query`.
     func searchLibretro(_ query: String, system: System) async throws -> [String] {
-        if libretroNames[system] == nil {
-            guard let set = system.thumbnailSet, let url = URL(string: "https://thumbnails.libretro.com")?
-                .appending(path: set).appending(path: "Named_Boxarts", directoryHint: .isDirectory)
-            else { throw CartridgeError("libretro has no artwork for \(system.name)") }
-            let page = String(decoding: try await Net.data(url), as: UTF8.self)
-            libretroNames[system] = page.matches(of: #/href="([^"?/]+)\.png"/#).compactMap { String($0.1).removingPercentEncoding }
-        }
+        let names = try await boxArtNames(system)
         let words = query.lowercased().split { !$0.isLetter && !$0.isNumber }
-        return (libretroNames[system] ?? []).filter { name in
+        return names.filter { name in
             let lower = name.lowercased()
             return words.allSatisfy { lower.contains($0) }
         }
     }
-    @ObservationIgnored private var libretroNames: [System: [String]] = [:]
+
+    /// A console's whole box art listing, one page, fetched once per run. What's kept is the download rather than
+    /// its result, so a library added all at once waits on a single request instead of starting one per game.
+    private func boxArtNames(_ system: System) async throws -> [String] {
+        if let running = libretroNames[system] { return try await running.value }
+        guard let set = system.thumbnailSet, let url = URL(string: "https://thumbnails.libretro.com")?
+            .appending(path: set).appending(path: "Named_Boxarts", directoryHint: .isDirectory)
+        else { throw CartridgeError("libretro has no artwork for \(system.name)") }
+        let task = Task {
+            let page = String(decoding: try await Net.data(url), as: UTF8.self)
+            return page.matches(of: #/href="([^"?/]+)\.png"/#).compactMap { String($0.1).removingPercentEncoding }
+        }
+        libretroNames[system] = task
+        do {
+            return try await task.value
+        } catch {
+            // A connection that dropped once shouldn't leave the console without artwork for the rest of the run.
+            libretroNames[system] = nil
+            throw error
+        }
+    }
+    @ObservationIgnored private var libretroNames: [System: Task<[String], Error>] = [:]
 
     /// The likeliest of libretro's names for a game: an American release before other regions, and the plainest
     /// name before revisions, discs and demos. Every word of the title had to appear for a name to get here, so a
@@ -1101,7 +1122,10 @@ final class Library {
             let target = game.system.isFolderBased ? Detect.bootFile(in: game.url, for: game.system) : game.url
             guard let target else { throw CartridgeError("Couldn't find the boot file inside \(game.url.lastPathComponent)") }
 
-            if emulator == .pcsx2, let app = installer.executable(.pcsx2) { try await EmulatorData.preparePCSX2(app) }
+            // Getting past an emulator's first-run wizard is worth trying, not worth refusing to play over: if it
+            // fails, the emulator still opens and says what it wants itself.
+            if emulator == .pcsx2, let app = installer.executable(.pcsx2) { try? await EmulatorData.preparePCSX2(app) }
+            if emulator == .duckstation, let app = installer.executable(.duckstation) { try? await EmulatorData.prepareDuckStation(app) }
             var originals: [ConfigKey: String?] = [:]
             if UserDefaults.standard.bool(forKey: Advanced.enabledKey) {
                 let tweaks = (emulatorSettings[emulator] ?? DisplayTweaks()).overlaid(by: games.first { $0.id == game.id }?.tweaks)

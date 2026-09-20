@@ -2,8 +2,8 @@
 # Builds Cartridge.app into ./build. Usage: ./build-app.sh
 set -euo pipefail
 
-VERSION="1.3.4"
-BUILD="11"
+VERSION="1.3.5"
+BUILD="12"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Assemble and sign outside ~/Desktop: iCloud-synced folders keep adding extended attributes that codesign rejects.

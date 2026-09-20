@@ -111,23 +111,43 @@ enum EmulatorData {
     static var duckStationSettings: URL { support.appendingPathComponent("DuckStation/settings.ini") }
     static var pcsx2Settings: URL { support.appendingPathComponent("PCSX2/inis/PCSX2.ini") }
 
+    /// Starts an emulator once and waits for its settings file. These emulators save their full defaults, key
+    /// bindings included, before they open their wizard, so a file written by hand here would lose all of that.
+    private static func writeDefaultSettings(_ app: URL, executable: String, settings: URL) async throws {
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: settings.path) else { return }
+        let process = Process()
+        process.executableURL = app.appendingPathComponent("Contents/MacOS/\(executable)")
+        try process.run()
+        for _ in 0..<200 where !fm.fileExists(atPath: settings.path) {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        // These emulators open their wizard as soon as they start, and a modal dialog ignores a polite quit -
+        // leaving the wizard on screen in front of the game Cartridge is about to start. Insist, and wait by
+        // polling: waitUntilExit() never returns for a process killed out from under Foundation.
+        process.terminate()
+        for _ in 0..<20 where process.isRunning { try await Task.sleep(for: .milliseconds(100)) }
+        if process.isRunning {
+            kill(process.processIdentifier, SIGKILL)
+            for _ in 0..<20 where process.isRunning { try await Task.sleep(for: .milliseconds(100)) }
+        }
+    }
+
+    /// DuckStation opens its setup wizard rather than the game until that wizard has been finished. Everything the
+    /// wizard asks for, Cartridge has already done - the BIOS is in DuckStation's own folder - so it marks it done.
+    /// DuckStation itself sets Main/SetupWizardIncomplete on a first run when neither it nor SettingsVersion is
+    /// there, and runs the wizard while it is true (qthost.cpp).
+    static func prepareDuckStation(_ app: URL) async throws {
+        try await writeDefaultSettings(app, executable: "DuckStation", settings: duckStationSettings)
+        try edit(duckStationSettings) { IniFile.set("SetupWizardIncomplete", "false", section: "Main", in: $0) }
+    }
+
     /// PCSX2 shows its setup wizard instead of booting the game until that wizard is finished (cancelling it quits),
     /// and leaves its BIOS setting empty. Cartridge has already put the BIOS where PCSX2 looks, so it marks the
     /// wizard done and picks that BIOS.
     static func preparePCSX2(_ app: URL) async throws {
         let fm = FileManager.default
-        if !fm.fileExists(atPath: pcsx2Settings.path) {
-            // PCSX2 saves its full defaults, key bindings included, before it opens the wizard. Start it once and quit
-            // as soon as the file is there, rather than hand-write a file that would lose those defaults.
-            let process = Process()
-            process.executableURL = app.appendingPathComponent("Contents/MacOS/PCSX2")
-            try process.run()
-            for _ in 0..<200 where !fm.fileExists(atPath: pcsx2Settings.path) {
-                try await Task.sleep(for: .milliseconds(50))
-            }
-            process.terminate()
-            await Task.detached { process.waitUntilExit() }.value
-        }
+        try await writeDefaultSettings(app, executable: "PCSX2", settings: pcsx2Settings)
         let bios = (try? fm.contentsOfDirectory(at: BiosTarget.pcsx2.folder, includingPropertiesForKeys: nil))?
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
             .first { file in

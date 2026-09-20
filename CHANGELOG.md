@@ -2,6 +2,14 @@
 
 Each release's section here becomes its notes on the GitHub release page.
 
+## [1.3.5] - 2026-09-20
+
+### Fixed
+
+- Pressing Play on a PlayStation game opened DuckStation's setup wizard and stopped there instead of booting the disc. Cartridge has already put the BIOS where DuckStation looks, so it now marks that wizard done, as it already did for PCSX2.
+- Adding a lot of games at once asked libretro for the same list of covers once per game. It is fetched once now, so a big library comes in much faster.
+- A game added while the Mac was offline was remembered as having no cover and never looked up again. Cartridge now tries again next time it runs.
+
 ## [1.3.4] - 2026-09-20
 
 ### Fixed
