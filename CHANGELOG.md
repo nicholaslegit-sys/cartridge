@@ -9,6 +9,7 @@ Each release's section here becomes its notes on the GitHub release page.
 - Pressing Play on a PlayStation game opened DuckStation's setup wizard and stopped there instead of booting the disc. Cartridge has already put the BIOS where DuckStation looks, so it now marks that wizard done, as it already did for PCSX2.
 - Adding a lot of games at once asked libretro for the same list of covers once per game. It is fetched once now, so a big library comes in much faster.
 - A game added while the Mac was offline was remembered as having no cover and never looked up again. Cartridge now tries again next time it runs.
+- The Intel half of the app is now opened on an Intel Mac before a release is published. Until now only the Apple Silicon half was ever started before shipping, so an Intel build that couldn't open would have gone out unnoticed.
 
 ## [1.3.4] - 2026-09-20
 
