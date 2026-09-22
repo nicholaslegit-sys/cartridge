@@ -145,7 +145,7 @@ enum Advanced {
 
     static func restore(_ originals: [ConfigKey: String?]) {
         for file in Set(originals.keys.map(\.file)) {
-            try? EmulatorData.edit(file) { text in
+            _ = try? EmulatorData.edit(file) { text in
                 originals.filter { $0.key.file == file }.reduce(text) { text, entry in write(entry.key, entry.value, in: text) }
             }
         }

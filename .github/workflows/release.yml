@@ -53,7 +53,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
-        run: swift build -c release --product Cartridge
+        run: ./build-app.sh
+      # The release job runs on Apple silicon, so its launch test only ever starts the arm64 half of the universal
+      # app. Each half is started here instead, on a Mac of its own kind.
+      - name: Launch it and wait for its window
+        run: ./.github/scripts/smoke-test.sh build/Cartridge.app
       - name: Check it is really ${{ matrix.arch }}
         run: |
           binary="$(swift build -c release --product Cartridge --show-bin-path)/Cartridge"
